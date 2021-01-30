@@ -17,4 +17,5 @@ tasks:
       stack --no-terminal setup
       stack --no-terminal build
       fpm -s dir -t deb -n kamelasa -v $(cat VERSION) $(stack path --local-install-root)/kamelasa
-      scp kamelasa_$(cat VERSION)_x86_64.deb deploy@kamelasa.mrlee.dev:/var/www/pkg.kamelasa.dev/
+      scp kamelasa_$(cat VERSION)_$(uname -m).deb deploy@kamelasa.mrlee.dev:/var/www/pkg.kamelasa.dev
+      ssh deploy@kamelasa.mrlee.dev update-pkg-archive
