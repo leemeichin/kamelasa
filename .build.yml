@@ -13,8 +13,8 @@ tasks:
   - publish: |
       cd kamelasa
       sudo gem install fpm
-      sudo stack upgrade
-      stack setup
-      stack build
+      sudo stack --no-terminal upgrade
+      stack --no-terminal setup
+      stack --no-terminal build
       fpm -s dir -t deb -n kamelasa -v $(cat VERSION) $(stack path --local-install-root)/kamelasa
       scp kamelasa_$(cat VERSION)_x86_64.deb deploy@kamelasa.mrlee.dev:/var/www/pkg.kamelasa.dev/
