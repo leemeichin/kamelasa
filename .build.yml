@@ -12,7 +12,7 @@ secrets:
 tasks:
   - publish: |
       cd kamelasa
-      sudo gem install fpm
+      sudo gem install -N -q fpm
       sudo stack --no-terminal upgrade
       stack --no-terminal setup
       stack --no-terminal build
