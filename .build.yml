@@ -6,6 +6,7 @@ packages:
   - ruby
   - ruby-dev
   - libffi-dev
+  - zlib1g-dev
 secrets:
   - f74304b4-9735-47a4-9d23-6d9fd7c47f1a
 tasks:
