@@ -11,12 +11,11 @@ secrets:
   - f74304b4-9735-47a4-9d23-6d9fd7c47f1a
 tasks:
   - publish: |
-
       cd kamelasa
       sudo gem install -N -q fpm
       sudo stack --no-terminal upgrade
       stack --no-terminal setup
       stack --no-terminal build
       fpm -s dir -t deb -n kamelasa -v $(cat VERSION) -a $(uname -m) $(stack path --local-install-root)/bin/kamelasa=/usr/bin/kamelasa
-      scp -o StrictHostKeyChecking=no kamelasa_$(cat VERSION)_$(uname -m).deb deploy@kamelasa.mrlee.dev:/var/www/pkg.kamelasa.dev
+      scp -o StrictHostKeyChecking=no kamelasa_$(cat VERSION)_*.deb deploy@kamelasa.mrlee.dev:/var/www/pkg.kamelasa.dev
       ssh -o StrictHostKeyChecking=no deploy@kamelasa.mrlee.dev update-pkg-archive
