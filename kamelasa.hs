@@ -1,6 +1,7 @@
 --------------------------------------------------------------------------------
 
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 import           Hakyll
 import qualified GHC.IO.Encoding               as E
@@ -61,41 +62,43 @@ dropIndexHtml key = mapContext transform (urlField key) where
 
 --------------------------------------------------------------------------------
 
-data GitLog = Hash | Commit | Full
-  deriving (Eq, Read)
+data GitLog = GitLog { commitHash :: String, commitMsg :: String, commitDate :: String }
+  deriving (Show)
 
-instance Show GitLog where
-  show content = case content of
-    Hash   -> "%h"
-    Commit -> "%h: %s"
-    Full   -> "%h: %s (%ai)"
-
-getGitLog :: GitLog -> Integer -> FilePath -> IO [String]
-getGitLog content limit path = do
+getGitLog :: Integer -> IO [GitLog]
+getGitLog limit = do
   (status, stdout, _) <- readProcessWithExitCode
     "git"
     [ "log"
-    , "--format=" ++ show content
+    , "--format=" ++ logfmt
     , "--max-count=" ++ show limit
     , "--"
-    , path
+    , "."
     ]
     ""
-
   return $ case status of
-    ExitSuccess -> splitOn "\n" (trim stdout)
-    _           -> [""]
+    ExitSuccess -> map parseGitLog $ splitOn "\n" (trim stdout)
+    _           -> []
   where trim = dropWhileEnd isSpace
+        logfmt = "%h;%s;%ai"
+
+parseGitLog :: String -> GitLog
+parseGitLog log = GitLog {..}
+  where [commitHash, commitMsg, commitDate] = splitOn ";" log
 
 logListField
-  :: String -> String -> GitLog -> Integer -> String -> Context String
-logListField pluralName singularName style limit path =
+  :: String -> Integer -> Context String
+logListField pluralName limit =
   listField pluralName ctx $ unsafeCompiler $ do
-    logs <- getGitLog style limit path
+    logs <- getGitLog limit
     return $ map logItem logs
  where
-  ctx = field singularName (return . show . itemBody)
-  logItem log = Item (fromString $ path ++ "/log/" ++ log) log
+  ctx = field "commit" (return . show . commitHash . itemBody)
+    <> field "message" (return . show . commitMsg . itemBody)
+    <> field "date" (return . show . commitDate . itemBody)
+
+  logItem :: GitLog -> Item GitLog
+  logItem log = Item (fromString $ "log/" ++ commitHash log) log
 
 
 --------------------------------------------------------------------------------
@@ -214,7 +217,7 @@ main = do
 
         let indexCtx =
               listField "posts" postCtx (return posts)
-                <> logListField "logs" "log" Full 10 "."
+                <> logListField "logs" 10
                 <> defaultContext
 
         getResourceBody
