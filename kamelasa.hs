@@ -93,9 +93,9 @@ logListField pluralName limit =
     logs <- getGitLog limit
     return $ map logItem logs
  where
-  ctx = field "commit" (return . show . commitHash . itemBody)
-    <> field "message" (return . show . commitMsg . itemBody)
-    <> field "date" (return . show . commitDate . itemBody)
+  ctx = field "commit" (return . commitHash . itemBody)
+    <> field "message" (return . commitMsg . itemBody)
+    <> field "date" (return . commitDate . itemBody)
 
   logItem :: GitLog -> Item GitLog
   logItem log = Item (fromString $ "log/" ++ commitHash log) log
