@@ -65,15 +65,15 @@ dropIndexHtml key = mapContext transform (urlField key) where
 data GitLog = GitLog { commitHash :: String, commitMsg :: String, commitDate :: String }
   deriving (Show)
 
-getGitLog :: Integer -> IO [GitLog]
-getGitLog limit = do
+getGitLog :: Integer -> String -> IO [GitLog]
+getGitLog limit path = do
   (status, stdout, _) <- readProcessWithExitCode
     "git"
     [ "log"
     , "--format=" ++ logfmt
     , "--max-count=" ++ show limit
     , "--"
-    , "."
+    , path
     ]
     ""
   return $ case status of
@@ -86,20 +86,25 @@ parseGitLog :: String -> GitLog
 parseGitLog log = GitLog {..}
   where [commitHash, commitMsg, commitDate] = splitOn ";" log
 
-logListField
-  :: String -> Integer -> Context String
-logListField pluralName limit =
-  listField pluralName ctx $ unsafeCompiler $ do
-    logs <- getGitLog limit
-    return $ map logItem logs
- where
-  ctx = field "commit" (return . commitHash . itemBody)
+gitLogCtx :: Context GitLog
+gitLogCtx = field "commit" (return . commitHash . itemBody)
     <> field "message" (return . commitMsg . itemBody)
     <> field "date" (return . commitDate . itemBody)
 
-  logItem :: GitLog -> Item GitLog
-  logItem log = Item (fromString $ "log/" ++ commitHash log) log
+logItem :: GitLog ->  Item GitLog
+logItem log = Item (fromString $ "log/" ++ commitHash log) log
 
+logListFieldWith fieldName limit =
+  listFieldWith fieldName gitLogCtx $ \item -> unsafeCompiler $ do
+    logs <- getGitLog limit $ show (itemIdentifier item)
+    return $ map logItem logs
+  
+logListField
+  :: String -> Integer -> String -> Context String
+logListField fieldName limit path =
+  listField fieldName gitLogCtx $ unsafeCompiler $ do
+    logs <- getGitLog limit path
+    return $ map logItem logs
 
 --------------------------------------------------------------------------------
 
@@ -133,6 +138,7 @@ postCtx :: Context String
 postCtx =
   field "size" (return . show . length . itemBody)
     <> ertField "ert" "prerendered-content"
+    <> logListFieldWith "gitlogs" 5
     <> dateField "date" "%b %d, %Y"
     <> dropIndexHtml "url"
     <> defaultContext
@@ -217,7 +223,7 @@ main = do
 
         let indexCtx =
               listField "posts" postCtx (return posts)
-                <> logListField "logs" 10
+                <> logListField "gitlogs" 10 "."
                 <> defaultContext
 
         getResourceBody
